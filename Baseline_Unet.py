@@ -60,15 +60,20 @@ def train(args, dataset, model, optimizer, loss, val_metric):
             output = model(img) 
             prediction = torch.sigmoid(output)
 
-            loss_seg_ = loss(input=prediction, target=mask)
+            loss_seg_ = loss(input=output, target=mask) # focal will use sigmoid in loss function...
 
             pred_3C = torch.cat((prediction, prediction, prediction), dim=1)
             mask_3C = torch.cat((mask, mask, mask), dim=1)
+            
             loss_con = Context_crit(pred_3C, mask_3C)
 
-            # loss_seg = loss_seg_ + loss_con
+            loss_seg = loss_seg_ + 0.005 * loss_con
             # loss_seg = loss_con
-            loss_seg =loss_con
+            # loss_seg = loss_con
+            # print("loss_seg", loss_seg)
+            print("loss_con", loss_con)
+            print("loss_seg_", loss_seg_)
+
 
             loss_seg.backward()
             optimizer.step()
@@ -157,6 +162,12 @@ if __name__ == '__main__':
         in_channels=1,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
         classes=1,)                     # a number of channels of output mask
     model = model.to(device)
+
+    # model = smp.Unet(
+    #     encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7    # use `imagenet` pre-trained weights for encoder initialization
+    #     in_channels=1,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
+    #     classes=1,)                     # a number of channels of output mask
+    # model = model.to(device) 
 
 
 
