@@ -67,7 +67,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
             
             loss_con = Context_crit(pred_3C, mask_3C)
 
-            loss_seg = loss_seg_ + 0.005 * loss_con
+            loss_seg = loss_seg_ + 0.001 * loss_con # 0.1 not, 0.001 better than 0.005
             # loss_seg = loss_con
             # loss_seg = loss_con
             # print("loss_seg", loss_seg)
