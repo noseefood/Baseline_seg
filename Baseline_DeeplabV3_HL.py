@@ -12,6 +12,13 @@ import random
 import os
 import monai
 
+import contextual_loss as cl
+
+
+'''
+Using Hybrid Loss (Dice + CL)
+'''
+
 torch.manual_seed(777)
 np.random.seed(777)
 random.seed(777)
@@ -36,6 +43,8 @@ def train(args, dataset, model, optimizer, loss, val_metric):
     args_dict = args.__dict__
     writer.add_hparams(args_dict, {})
 
+    Context_crit = cl.ContextualLoss(use_vgg=True, vgg_layer='relu5_4',band_width=0.8).to(device) 
+
     best_metric = -100 # best metric for all trials
     best_metric_batch = -1 # best metric 
 
@@ -56,9 +65,22 @@ def train(args, dataset, model, optimizer, loss, val_metric):
             output = model(img) 
             prediction = torch.sigmoid(output)
 
-            loss_seg_ = loss(input=prediction, target=mask)
+            ##############################################
 
-            loss_seg_.backward()
+            loss_seg_ = loss(input=prediction, target=mask) # focal will use sigmoid in loss function...
+
+            pred_3C = torch.cat((prediction, prediction, prediction), dim=1)
+            mask_3C = torch.cat((mask, mask, mask), dim=1)
+            
+            loss_con = Context_crit(pred_3C, mask_3C)
+
+            loss_seg = loss_seg_ + 0.005 * loss_con
+            print("loss_con", loss_con)
+            print("loss_seg_", loss_seg_)
+
+            ##############################################  
+
+            loss_seg.backward()
             optimizer.step()
     
             writer.add_scalar('loss', loss_seg_.item(), epoch * len(dataloader_train) + i_batch)
@@ -78,7 +100,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                         val_outputs = model(val_images)
                         # val_outputs = torch.sigmoid(val_outputs) # val_metric close sigmoid
 
-                        value,_ = val_metric(y_pred=val_outputs, y=val_labels) # val_outputs -> sigmoid(val_outputs) 
+                        value,_ = val_metric(y_pred=val_outputs, y=val_labels)
 
                         val_scores.append(value.cpu().numpy())
                         
@@ -97,7 +119,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                     if metric > best_metric:
                         best_metric = metric
                         best_metric_batch = batch_num
-                        torch.save(model.state_dict(), './save_model/best_metric_model_Unet++.pth')
+                        torch.save(model.state_dict(), './save_model/best_metric_model_DeepLabV3' + str(int(metric)) +'.pth')
                         print('saved new best metric model')
                     else:
                         print('not saved new best metric model')
@@ -132,14 +154,7 @@ if __name__ == '__main__':
 
     os.makedirs('./save_model', exist_ok=True)
 
-    # model = smp.DeepLabV3Plus(    
-    #     encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
-    #     encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
-    #     in_channels=1,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
-    #     classes=1,)                     # a number of channels of output mask
-    # model = model.to(device)
-
-    model = smp.UnetPlusPlus(    
+    model = smp.DeepLabV3(    
         encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
         encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
         in_channels=1,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
@@ -157,7 +172,9 @@ if __name__ == '__main__':
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     # loss = smp.losses.DiceLoss(mode='binary', log_loss=False, from_logits=False)
-    loss = torch.nn.BCELoss().to(device) # mean
+    # loss = torch.nn.BCELoss().to(device) # mean
+    loss = monai.losses.Dice(sigmoid=False).to(device)
+
     val_metric = monai.metrics.DiceHelper(sigmoid=True)  # sigmoid + 0.5 threshold
 
     train(args, dataset, model, optimizer, loss, val_metric)
