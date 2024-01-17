@@ -120,7 +120,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                     if metric > best_metric:
                         best_metric = metric
                         best_metric_batch = batch_num
-                        torch.save(model.state_dict(), './save_model/best_metric_model_DeepLabV3Plus' + str(round(metric, 2)) +'.pth')
+                        torch.save(model.state_dict(), './save_model/best_metric_model_UnetPLUSPLUS' + str(round(metric, 2)) +'.pth')
                         print('saved new best metric model')
                     else:
                         print('not saved new best metric model')
