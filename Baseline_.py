@@ -75,7 +75,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
             loss_con = Context_crit(pred_3C, mask_3C)
 
             loss_seg = loss_seg_ + 0.005 * loss_con
-
+            
             print("loss_con", loss_con)
             print("loss_seg_", loss_seg_)
 
@@ -172,6 +172,8 @@ if __name__ == '__main__':
     elif args.optimizer == "SGD":
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
+    # loss = smp.losses.DiceLoss(mode='binary', log_loss=False, from_logits=False)
+    # loss = torch.nn.BCELoss().to(device) # mean
     loss = monai.losses.Dice(sigmoid=False).to(device)
 
     val_metric = monai.metrics.DiceHelper(sigmoid=True)  # sigmoid + 0.5 threshold
