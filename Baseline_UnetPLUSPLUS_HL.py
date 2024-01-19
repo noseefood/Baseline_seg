@@ -122,7 +122,7 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                     if metric > best_metric:
                         best_metric = metric
                         best_metric_batch = batch_num
-                        torch.save(model.state_dict(), './save_model/best_metric_model_UnetPLUSPLUS' + str(round(metric, 2)) +'.pth')
+                        torch.save(model.state_dict(), './save_model/best_metric_model_UnetPLUSPLUS' + str(round(metric, 2)) + 'inBatch' + str(batch_num) + '.pth')
                         print('saved new best metric model')
                     else:
                         print('not saved new best metric model')
@@ -134,6 +134,11 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                 g_output_grid = torchvision.utils.make_grid(prediction, nrow=3, padding=2, normalize=False, value_range=None, scale_each=False, pad_value=0)
                 writer.add_images('output', g_output_grid, epoch * len(dataloader_train) + i_batch, dataformats='CHW')
 
+            # save model
+            if batch_num % (args.save_batch) == 0:
+                torch.save(model.state_dict(), './save_model/model_UnetPLUSPLUS' + str(batch_num) +'.pth')
+                print('saved new model')
+
 
 
 if __name__ == '__main__':
@@ -143,7 +148,7 @@ if __name__ == '__main__':
     parser.add_argument('--mask_dir', type=str, default='./data/Basic_Pork/masks', help='input mask path')
     parser.add_argument('--split_ratio', type=float, default='0.8', help='train and val split ratio')
 
-    parser.add_argument('--lr', type=float, default='1e-4', help='learning rate')
+    parser.add_argument('--lr', type=float, default='5e-5', help='learning rate')
     parser.add_argument('--optimizer', type=str, default='Adam', help='RMSprop/Adam/SGD')
     parser.add_argument('--batch_size', type=int, default='8', help='batch_size in training')
     parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
