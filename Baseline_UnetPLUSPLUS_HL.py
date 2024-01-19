@@ -28,6 +28,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(args, dataset, model, optimizer, loss, val_metric):
 
+    model.load_state_dict(torch.load('./best_metric_model_UnetPLUSPLUS0.89.pth')) # 
+
     # split train and val dataset
     length =  dataset.num_of_samples()
     train_size = int(0.8 * length) 
