@@ -28,6 +28,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(args, dataset, model, optimizer, loss, val_metric):
 
+    model.load_state_dict(torch.load('./best_metric_model_DeepLabV3Plus0.86.pth')) #
+
     # split train and val dataset
     length =  dataset.num_of_samples()
     train_size = int(0.8 * length) 
@@ -131,6 +133,11 @@ def train(args, dataset, model, optimizer, loss, val_metric):
                 writer.add_images('mask', mask_grid, epoch * len(dataloader_train) + i_batch, dataformats='CHW')
                 g_output_grid = torchvision.utils.make_grid(prediction, nrow=3, padding=2, normalize=False, value_range=None, scale_each=False, pad_value=0)
                 writer.add_images('output', g_output_grid, epoch * len(dataloader_train) + i_batch, dataformats='CHW')
+
+            # save model
+            if batch_num % (args.save_batch) == 0:
+                model.eval()
+                torch.save(model.state_dict(), './save_model/DeepLabV3Plus' + str(batch_num) + '.pth')
 
 
 
